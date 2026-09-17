@@ -1,6 +1,10 @@
 import type { Activity, Ring, Wheel } from '../types';
 
-const BASE_URL = 'http://localhost:3001';
+// Same-origin: Vite's dev server proxies /wheels and /activities to the API
+// (see vite.config.ts), and in production the API is expected to be served
+// from the same origin as the built app. This also sidesteps CORS entirely
+// instead of requiring the API to answer preflight requests.
+const BASE_URL = '';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`API error: ${res.status}`);

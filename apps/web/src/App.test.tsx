@@ -35,7 +35,7 @@ beforeEach(() => {
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string) => {
-      if (url === `http://localhost:3001/wheels/${WHEEL_ID}`) {
+      if (url === `/wheels/${WHEEL_ID}`) {
         return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(WHEEL_PAYLOAD) } as Response);
       }
       throw new Error(`unexpected fetch: ${url}`);
@@ -66,10 +66,10 @@ describe('App end-to-end wiring (smoke)', () => {
     const NEW_RING_ID = 'f0d9b9d2-63a0-4c9a-9c17-8f0a6d3d2c11';
     const user = userEvent.setup();
     (fetch as any).mockImplementation((url: string, init?: RequestInit) => {
-      if (url === `http://localhost:3001/wheels/${WHEEL_ID}`) {
+      if (url === `/wheels/${WHEEL_ID}`) {
         return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(WHEEL_PAYLOAD) } as Response);
       }
-      if (url === `http://localhost:3001/wheels/${WHEEL_ID}/rings` && init?.method === 'POST') {
+      if (url === `/wheels/${WHEEL_ID}/rings` && init?.method === 'POST') {
         const body = JSON.parse(init.body as string);
         return Promise.resolve({
           ok: true,

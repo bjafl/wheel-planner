@@ -10,4 +10,10 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/wheels': 'http://localhost:3001',
+      '/activities': 'http://localhost:3001',
+    },
+  },
 })
