@@ -1,24 +1,122 @@
+import { useEffect, useState } from 'react';
 import { WheelCanvas } from './wheel/WheelCanvas';
 import { MonthRing } from './wheel/MonthRing';
 import { TodayMarker } from './wheel/TodayMarker';
 import { CategoryRing } from './wheel/CategoryRing';
-import type { Ring, Activity } from './types';
+import { ActivityForm } from './panel/ActivityForm';
+import { ActivityList } from './panel/ActivityList';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useWheelStore } from './store/wheelStore';
+import { api } from './api/client';
+import type { Activity } from './types';
 
-const fixtureRing: Ring = { id: 'r1', wheelId: 'w1', name: 'Kampanjer', orderIndex: 0, color: '#3b82f6' };
-const fixtureActivities: Activity[] = [
-  { id: 'a1', ringId: 'r1', title: 'Vårkampanje', notes: null, kind: 'range', startDate: '2026-03-01', endDate: '2026-05-01', recurrenceRule: null, lane: 0, color: null },
-  { id: 'a2', ringId: 'r1', title: 'Lansering', notes: null, kind: 'milestone', startDate: '2026-06-15', endDate: null, recurrenceRule: null, lane: 0, color: null },
-];
+// Dev bootstrap: until Task 13 adds a real "pick/create a wheel" UI, the app
+// works against a single wheel per browser, created on first run and
+// remembered in localStorage so reloads keep loading the same one.
+const DEV_WHEEL_ID_KEY = 'wheel-planner:devWheelId';
+
+async function ensureDevWheelId(): Promise<string> {
+  const existing = localStorage.getItem(DEV_WHEEL_ID_KEY);
+  if (existing) {
+    try {
+      await api.getWheel(existing);
+      return existing;
+    } catch {
+      // Fall through and create a fresh one, e.g. after the dev DB was reset.
+    }
+  }
+  const wheel = await api.createWheel({ title: 'Mitt årshjul', year: 2026 });
+  localStorage.setItem(DEV_WHEEL_ID_KEY, wheel.id);
+  return wheel.id;
+}
 
 export default function App() {
   const year = 2026;
+  const wheel = useWheelStore((s) => s.wheel);
+  const loadWheel = useWheelStore((s) => s.loadWheel);
+  const removeActivity = useWheelStore((s) => s.removeActivity);
+
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<Activity | undefined>(undefined);
+  const [formRingId, setFormRingId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    ensureDevWheelId().then((id) => loadWheel(id));
+  }, [loadWheel]);
+
+  if (!wheel) {
+    return <div className="p-8">Laster årshjul…</div>;
+  }
+
+  const firstRing = wheel.rings[0];
+
+  function openCreateForm() {
+    setEditingActivity(undefined);
+    setFormRingId(firstRing?.id);
+    setSheetOpen(true);
+  }
+
+  function openEditForm(activity: Activity) {
+    setEditingActivity(activity);
+    setFormRingId(activity.ringId);
+    setSheetOpen(true);
+  }
+
+  const formRing = wheel.rings.find((r) => r.id === formRingId);
+
   return (
-    <div className="p-8 flex justify-center">
+    <div className="p-8 flex flex-col items-center gap-6">
       <WheelCanvas>
         <MonthRing year={year} />
         <TodayMarker year={year} />
-        <CategoryRing ring={fixtureRing} ringIndex={0} activities={fixtureActivities} year={year} />
+        {wheel.rings.map((ring, ringIndex) => (
+          <CategoryRing
+            key={ring.id}
+            ring={ring}
+            ringIndex={ringIndex}
+            activities={wheel.activities.filter((a) => a.ringId === ring.id)}
+            year={year}
+          />
+        ))}
       </WheelCanvas>
+
+      <div className="w-full max-w-md space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-medium">Aktiviteter</h2>
+          <Button onClick={openCreateForm} disabled={!firstRing}>
+            Ny aktivitet
+          </Button>
+        </div>
+        {!firstRing && (
+          <p className="text-sm text-muted-foreground">
+            Legg til en kategori-ring (via API) før du kan opprette aktiviteter.
+          </p>
+        )}
+        <ActivityList
+          activities={wheel.activities}
+          ringName={(ringId) => wheel.rings.find((r) => r.id === ringId)?.name ?? ringId}
+          onEdit={openEditForm}
+          onDelete={(activityId) => removeActivity(activityId)}
+        />
+      </div>
+
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>{editingActivity ? 'Rediger aktivitet' : 'Ny aktivitet'}</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            {formRing && (
+              <ActivityForm
+                ring={formRing}
+                activity={editingActivity}
+                onDone={() => setSheetOpen(false)}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
