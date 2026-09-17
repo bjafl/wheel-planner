@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWheelStore } from '../store/wheelStore';
-import type { Activity, ActivityKind, Ring } from '../types';
+import type { Activity, ActivityKind, RecurrenceType, Ring } from '../types';
 
 export function ActivityForm({
   ring,
@@ -21,6 +21,9 @@ export function ActivityForm({
   const [kind, setKind] = useState<ActivityKind>(activity?.kind ?? 'range');
   const [startDate, setStartDate] = useState(activity?.startDate ?? '');
   const [endDate, setEndDate] = useState(activity?.endDate ?? '');
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType | 'none'>(
+    activity?.recurrenceRule?.type ?? 'none'
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,7 +34,7 @@ export function ActivityForm({
       kind,
       startDate,
       endDate: kind === 'milestone' ? null : endDate,
-      recurrenceRule: null,
+      recurrenceRule: recurrenceType === 'none' ? null : { type: recurrenceType, interval: 1, until: null },
       lane: activity?.lane ?? 0,
       color: null,
     };
@@ -71,6 +74,22 @@ export function ActivityForm({
           <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
       )}
+      <div>
+        <Label htmlFor="recurrence">Gjentakelse</Label>
+        <select
+          id="recurrence"
+          aria-label="Gjentakelse"
+          value={recurrenceType}
+          onChange={(e) => setRecurrenceType(e.target.value as RecurrenceType | 'none')}
+          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <option value="none">Ingen</option>
+          <option value="daily">Daglig</option>
+          <option value="weekly">Ukentlig</option>
+          <option value="monthly">Månedlig</option>
+          <option value="yearly">Årlig</option>
+        </select>
+      </div>
       <Button type="submit">Lagre</Button>
     </form>
   );

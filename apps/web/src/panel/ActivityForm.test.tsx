@@ -25,4 +25,18 @@ describe('ActivityForm', () => {
     );
     expect(onDone).toHaveBeenCalled();
   });
+
+  it('includes a recurrenceRule when a repeat interval is chosen', async () => {
+    const addActivity = vi.fn().mockResolvedValue(undefined);
+    (useWheelStore as any).mockReturnValue({ addActivity });
+
+    render(<ActivityForm ring={ring} onDone={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText(/tittel/i), 'Månedsmøte');
+    await userEvent.selectOptions(screen.getByLabelText(/gjentakelse/i), 'monthly');
+    await userEvent.click(screen.getByRole('button', { name: /lagre/i }));
+
+    expect(addActivity).toHaveBeenCalledWith(
+      expect.objectContaining({ recurrenceRule: { type: 'monthly', interval: 1, until: null } })
+    );
+  });
 });
