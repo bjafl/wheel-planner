@@ -39,7 +39,15 @@ export const useWheelStore = create<WheelStore>((set, get) => ({
     const wheel = get().wheel;
     if (!wheel) return;
     await api.deleteRing(wheel.id, ringId);
-    set({ wheel: { ...wheel, rings: wheel.rings.filter((r) => r.id !== ringId) } });
+    // The DB cascade-deletes activities belonging to the ring; mirror that
+    // client-side so orphaned activities don't linger in e.g. ActivityList.
+    set({
+      wheel: {
+        ...wheel,
+        rings: wheel.rings.filter((r) => r.id !== ringId),
+        activities: wheel.activities.filter((a) => a.ringId !== ringId),
+      },
+    });
   },
 
   addActivity: async (input) => {

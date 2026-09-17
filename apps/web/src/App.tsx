@@ -5,6 +5,7 @@ import { TodayMarker } from './wheel/TodayMarker';
 import { CategoryRing } from './wheel/CategoryRing';
 import { ActivityForm } from './panel/ActivityForm';
 import { ActivityList } from './panel/ActivityList';
+import { RingManager } from './panel/RingManager';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useWheelStore } from './store/wheelStore';
@@ -40,6 +41,7 @@ export default function App() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingActivity, setEditingActivity] = useState<Activity | undefined>(undefined);
   const [formRingId, setFormRingId] = useState<string | undefined>(undefined);
+  const [ringSheetOpen, setRingSheetOpen] = useState(false);
 
   useEffect(() => {
     ensureDevWheelId().then((id) => loadWheel(id));
@@ -83,6 +85,13 @@ export default function App() {
 
       <div className="w-full max-w-md space-y-4">
         <div className="flex items-center justify-between">
+          <h2 className="text-lg font-medium">Ringer</h2>
+          <Button variant="outline" onClick={() => setRingSheetOpen(true)}>
+            Administrer ringer
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">Aktiviteter</h2>
           <Button onClick={openCreateForm} disabled={!firstRing}>
             Ny aktivitet
@@ -90,7 +99,7 @@ export default function App() {
         </div>
         {!firstRing && (
           <p className="text-sm text-muted-foreground">
-            Legg til en kategori-ring (via API) før du kan opprette aktiviteter.
+            Legg til en kategori-ring for å kunne opprette aktiviteter.
           </p>
         )}
         <ActivityList
@@ -114,6 +123,17 @@ export default function App() {
                 onDone={() => setSheetOpen(false)}
               />
             )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={ringSheetOpen} onOpenChange={setRingSheetOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Administrer ringer</SheetTitle>
+          </SheetHeader>
+          <div className="px-4 pb-4">
+            <RingManager rings={wheel.rings} />
           </div>
         </SheetContent>
       </Sheet>

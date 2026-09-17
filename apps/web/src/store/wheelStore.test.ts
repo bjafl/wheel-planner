@@ -49,4 +49,20 @@ describe('wheelStore', () => {
 
     expect(useWheelStore.getState().wheel?.activities).toEqual([]);
   });
+
+  it('removeRing removes the ring and cascade-removes its activities from state', async () => {
+    const ring = { id: 'r1', wheelId: 'w1', name: 'Kampanjer', orderIndex: 0, color: '#3b82f6' };
+    const otherRing = { id: 'r2', wheelId: 'w1', name: 'Ferier', orderIndex: 1, color: '#22c55e' };
+    const activityOnRemovedRing = { id: 'a1', ringId: 'r1', title: 'Orphaned', notes: null, kind: 'milestone' as const, startDate: '2026-01-01', endDate: null, recurrenceRule: null, lane: 0, color: null };
+    const activityOnOtherRing = { id: 'a2', ringId: 'r2', title: 'Kept', notes: null, kind: 'milestone' as const, startDate: '2026-02-01', endDate: null, recurrenceRule: null, lane: 0, color: null };
+    useWheelStore.setState({
+      wheel: { id: 'w1', title: 'T', year: 2026, rings: [ring, otherRing], activities: [activityOnRemovedRing, activityOnOtherRing] },
+    });
+
+    await useWheelStore.getState().removeRing('r1');
+
+    const state = useWheelStore.getState().wheel;
+    expect(state?.rings).toEqual([otherRing]);
+    expect(state?.activities).toEqual([activityOnOtherRing]);
+  });
 });
