@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,6 +28,18 @@ export function ActivityForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // The native `required` attribute was intentionally removed from the date
+    // inputs (it broke a jsdom test-submission scenario), so this manual
+    // check is the only guard against persisting an empty date string, which
+    // would otherwise silently produce an Invalid Date / NaN angle later.
+    if (!startDate) {
+      toast.error('Startdato er påkrevd');
+      return;
+    }
+    if (kind === 'range' && !endDate) {
+      toast.error('Sluttdato er påkrevd for aktiviteter med varighet');
+      return;
+    }
     const payload = {
       ringId: ring.id,
       title,
