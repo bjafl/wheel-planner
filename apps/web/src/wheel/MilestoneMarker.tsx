@@ -4,7 +4,7 @@ import { addDays, format } from 'date-fns';
 import { dateToAngle } from '../geometry/dateAngle';
 import { angleDeltaToDayDelta } from './useSegmentDrag';
 import { useWheelStore } from '../store/wheelStore';
-import { CENTER } from './constants';
+import { screenToLocalPoint } from './pointerMath';
 import type { Activity } from '../types';
 
 type SetTooltip = (tooltip: { el: Element; label: string } | null) => void;
@@ -32,10 +32,7 @@ export function MilestoneMarker({
   const [previewDayDelta, setPreviewDayDelta] = useState<number | null>(null);
 
   const bind = useDrag(({ first, last, xy: [x, y], event, memo }) => {
-    const svg = (event.target as SVGElement).ownerSVGElement;
-    const rect = svg!.getBoundingClientRect();
-    const localX = x - rect.left - CENTER;
-    const localY = y - rect.top - CENTER;
+    const { x: localX, y: localY } = screenToLocalPoint(event.target as SVGGraphicsElement, x, y);
     const currentAngle = pointerAngle(localX, localY);
 
     const startAngle = first ? currentAngle : memo;

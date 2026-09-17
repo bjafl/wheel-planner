@@ -3,7 +3,7 @@ import { isLeapYear } from 'date-fns';
 import { addDays } from 'date-fns';
 import type { Activity } from '../types';
 import { useWheelStore } from '../store/wheelStore';
-import { CENTER } from './constants';
+import { screenToLocalPoint } from './pointerMath';
 
 function yearLength(year: number): number {
   return isLeapYear(new Date(year, 0, 1)) ? 366 : 365;
@@ -30,10 +30,7 @@ export function useSegmentDrag({
   const updateActivity = useWheelStore((s) => s.updateActivity);
 
   const bind = useDrag(({ first, last, xy: [x, y], event, memo }) => {
-    const svg = (event.target as SVGElement).ownerSVGElement;
-    const rect = svg!.getBoundingClientRect();
-    const localX = x - rect.left - CENTER;
-    const localY = y - rect.top - CENTER;
+    const { x: localX, y: localY } = screenToLocalPoint(event.target as SVGGraphicsElement, x, y);
     const currentAngle = pointerAngle(localX, localY);
 
     const startAngle = first ? currentAngle : memo;
