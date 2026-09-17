@@ -42,7 +42,7 @@ describe('wheelStore', () => {
   });
 
   it('removeActivity removes it from state', async () => {
-    const activity = { id: 'a1', ringId: 'r1', title: 'New', notes: null, kind: 'milestone', startDate: '2026-01-01', endDate: null, recurrenceRule: null, lane: 0, color: null };
+    const activity = { id: 'a1', ringId: 'r1', title: 'New', notes: null, kind: 'milestone' as const, startDate: '2026-01-01', endDate: null, recurrenceRule: null, lane: 0, color: null };
     useWheelStore.setState({ wheel: { id: 'w1', title: 'T', year: 2026, rings: [], activities: [activity] } });
 
     await useWheelStore.getState().removeActivity('a1');
