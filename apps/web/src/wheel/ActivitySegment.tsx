@@ -16,14 +16,14 @@ export function ActivitySegment({
   outerRadius,
   year,
   color,
-  setTooltip = () => {},
+  setTooltip,
 }: {
   activity: Activity;
   innerRadius: number;
   outerRadius: number;
   year: number;
   color: string;
-  setTooltip?: SetTooltip;
+  setTooltip: SetTooltip;
 }) {
   const pathRef = useRef<SVGPathElement>(null);
   const [hovered, setHovered] = useState(false);

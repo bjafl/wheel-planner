@@ -25,13 +25,13 @@ export function CategoryRing({
   ringIndex,
   activities,
   year,
-  setTooltip = () => {},
+  setTooltip,
 }: {
   ring: Ring;
   ringIndex: number;
   activities: Activity[];
   year: number;
-  setTooltip?: SetTooltip;
+  setTooltip: SetTooltip;
 }) {
   const ringInner = CATEGORY_RING_START_RADIUS + ringIndex * CATEGORY_RING_WIDTH;
   const expanded = activities.flatMap((activity) => occurrencesFor(activity, year));

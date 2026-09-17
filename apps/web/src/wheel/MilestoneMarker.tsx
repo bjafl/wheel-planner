@@ -18,13 +18,13 @@ export function MilestoneMarker({
   radius,
   year,
   color,
-  setTooltip = () => {},
+  setTooltip,
 }: {
   activity: Activity;
   radius: number;
   year: number;
   color: string;
-  setTooltip?: SetTooltip;
+  setTooltip: SetTooltip;
 }) {
   const updateActivity = useWheelStore((s) => s.updateActivity);
   const circleRef = useRef<SVGCircleElement>(null);

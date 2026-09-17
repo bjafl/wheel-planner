@@ -13,7 +13,7 @@ describe('CategoryRing', () => {
   it('renders one arc per range activity and one marker per milestone', () => {
     const { container } = render(
       <svg>
-        <CategoryRing ring={ring} ringIndex={0} activities={activities} year={2026} />
+        <CategoryRing ring={ring} ringIndex={0} activities={activities} year={2026} setTooltip={() => {}} />
       </svg>
     );
     expect(container.querySelectorAll('path[data-activity-id="a1"]')).toHaveLength(1);
@@ -29,7 +29,7 @@ describe('CategoryRing', () => {
     };
     const { container } = render(
       <svg>
-        <CategoryRing ring={ring} ringIndex={0} activities={[recurringActivity]} year={2026} />
+        <CategoryRing ring={ring} ringIndex={0} activities={[recurringActivity]} year={2026} setTooltip={() => {}} />
       </svg>
     );
     expect(container.querySelectorAll('[data-milestone-id="a3"]')).toHaveLength(12);
