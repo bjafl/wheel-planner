@@ -52,12 +52,19 @@ export const useWheelStore = create<WheelStore>((set, get) => ({
     await api.deleteRing(wheel.id, ringId);
     // The DB cascade-deletes activities belonging to the ring; mirror that
     // client-side so orphaned activities don't linger in e.g. ActivityList.
-    set({
-      wheel: {
-        ...wheel,
-        rings: wheel.rings.filter((r) => r.id !== ringId),
-        activities: wheel.activities.filter((a) => a.ringId !== ringId),
-      },
+    // Use the functional set() form to read state at commit time (not the
+    // pre-await `wheel` capture) so concurrent removeRing or updateRing calls
+    // don't race and clobber each other's already-applied changes with a
+    // stale base array.
+    set((state) => {
+      if (!state.wheel) return state;
+      return {
+        wheel: {
+          ...state.wheel,
+          rings: state.wheel.rings.filter((r) => r.id !== ringId),
+          activities: state.wheel.activities.filter((a) => a.ringId !== ringId),
+        },
+      };
     });
   },
 

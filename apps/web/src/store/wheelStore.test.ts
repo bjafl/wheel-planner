@@ -96,4 +96,45 @@ describe('wheelStore', () => {
     expect(rings?.find((r) => r.id === 'r2')?.orderIndex).toBe(0);
     expect(rings?.map((r) => r.id)).toEqual(['r2', 'r1']);
   });
+
+  it('removeRing applies concurrent deletions without losing sibling removals', async () => {
+    // Tests the same stale-closure race as updateRing: if removeRing captures
+    // a `wheel` reference before its API call resolves, concurrent removeRing
+    // calls will both compute their filtered arrays from the same stale base
+    // state, and whichever resolves last will clobber the other's removal.
+    const ring1 = { id: 'r1', wheelId: 'w1', name: 'A', orderIndex: 0, color: '#111111' };
+    const ring2 = { id: 'r2', wheelId: 'w1', name: 'B', orderIndex: 1, color: '#222222' };
+    const ring3 = { id: 'r3', wheelId: 'w1', name: 'C', orderIndex: 2, color: '#333333' };
+    const activityOnRing1 = { id: 'a1', ringId: 'r1', title: 'Act1', notes: null, kind: 'milestone' as const, startDate: '2026-01-01', endDate: null, recurrenceRule: null, lane: 0, color: null };
+    const activityOnRing2 = { id: 'a2', ringId: 'r2', title: 'Act2', notes: null, kind: 'milestone' as const, startDate: '2026-02-01', endDate: null, recurrenceRule: null, lane: 0, color: null };
+    const activityOnRing3 = { id: 'a3', ringId: 'r3', title: 'Act3', notes: null, kind: 'milestone' as const, startDate: '2026-03-01', endDate: null, recurrenceRule: null, lane: 0, color: null };
+    useWheelStore.setState({
+      wheel: {
+        id: 'w1',
+        title: 'T',
+        year: 2026,
+        rings: [ring1, ring2, ring3],
+        activities: [activityOnRing1, activityOnRing2, activityOnRing3],
+      },
+    });
+
+    (api.deleteRing as any).mockImplementation((_wheelId: string, ringId: string) => {
+      // r2's request resolves first (delay 0), r1's resolves later (delay 10)
+      // — the order concurrent calls don't guarantee, which is exactly what
+      // exposes the stale-closure bug if present.
+      const delay = ringId === 'r1' ? 10 : 0;
+      return new Promise((resolve) => setTimeout(() => resolve(undefined), delay));
+    });
+
+    await Promise.all([
+      useWheelStore.getState().removeRing('r1'),
+      useWheelStore.getState().removeRing('r2'),
+    ]);
+
+    const wheel = useWheelStore.getState().wheel;
+    // Both r1 and r2 should be gone; only r3 remains.
+    expect(wheel?.rings.map((r) => r.id)).toEqual(['r3']);
+    // Activities on r1 and r2 should be removed; only a3 remains.
+    expect(wheel?.activities.map((a) => a.id)).toEqual(['a3']);
+  });
 });
