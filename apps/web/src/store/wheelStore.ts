@@ -32,7 +32,18 @@ export const useWheelStore = create<WheelStore>((set, get) => ({
     const wheel = get().wheel;
     if (!wheel) return;
     const updated = await api.updateRing(wheel.id, ringId, patch);
-    set({ wheel: { ...wheel, rings: wheel.rings.map((r) => (r.id === ringId ? updated : r)) } });
+    // Apply via the functional set() form and re-read state at commit time
+    // (not the `wheel` captured above) so concurrent calls — e.g. RingManager's
+    // drag-to-reorder, which fires one updateRing per affected ring via
+    // Promise.all — don't race and clobber each other's already-applied
+    // changes with a stale base array.
+    set((state) => {
+      if (!state.wheel) return state;
+      const rings = state.wheel.rings
+        .map((r) => (r.id === ringId ? updated : r))
+        .sort((a, b) => a.orderIndex - b.orderIndex);
+      return { wheel: { ...state.wheel, rings } };
+    });
   },
 
   removeRing: async (ringId) => {

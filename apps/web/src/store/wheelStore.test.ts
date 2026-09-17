@@ -65,4 +65,35 @@ describe('wheelStore', () => {
     expect(state?.rings).toEqual([otherRing]);
     expect(state?.activities).toEqual([activityOnOtherRing]);
   });
+
+  it('updateRing applies concurrent reorder updates without losing sibling changes', async () => {
+    // Mirrors RingManager's drag-to-reorder flow, which fires one updateRing
+    // call per affected ring via Promise.all. If updateRing's `set()` closes
+    // over a `wheel` reference captured before either call's API request
+    // resolves, whichever call resolves last will overwrite the other's
+    // already-applied change (both compute their patched array from the
+    // same stale base state).
+    const ring1 = { id: 'r1', wheelId: 'w1', name: 'A', orderIndex: 0, color: '#111111' };
+    const ring2 = { id: 'r2', wheelId: 'w1', name: 'B', orderIndex: 1, color: '#222222' };
+    useWheelStore.setState({ wheel: { id: 'w1', title: 'T', year: 2026, rings: [ring1, ring2], activities: [] } });
+
+    (api.updateRing as any).mockImplementation((_wheelId: string, ringId: string, patch: Partial<typeof ring1>) => {
+      const base = ringId === 'r1' ? ring1 : ring2;
+      const updated = { ...base, ...patch };
+      // r2's request resolves first, r1's resolves later — the order a real
+      // drag would not guarantee, which is exactly what makes this a race.
+      const delay = ringId === 'r1' ? 10 : 0;
+      return new Promise((resolve) => setTimeout(() => resolve(updated), delay));
+    });
+
+    await Promise.all([
+      useWheelStore.getState().updateRing('r1', { orderIndex: 1 }),
+      useWheelStore.getState().updateRing('r2', { orderIndex: 0 }),
+    ]);
+
+    const rings = useWheelStore.getState().wheel?.rings;
+    expect(rings?.find((r) => r.id === 'r1')?.orderIndex).toBe(1);
+    expect(rings?.find((r) => r.id === 'r2')?.orderIndex).toBe(0);
+    expect(rings?.map((r) => r.id)).toEqual(['r2', 'r1']);
+  });
 });
