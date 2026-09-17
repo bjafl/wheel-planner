@@ -1,0 +1,9 @@
+{
+  "name": "wheel-planner",
+  "private": true,
+  "scripts": {
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api dev",
+    "test": "pnpm --filter web test:run && pnpm --filter api test"
+  }
+}
