@@ -14,6 +14,9 @@ vi.mock('../api/client', () => ({
   },
 }));
 
+const activity1 = { id: 'a1', ringId: 'r1', title: 'Vår', notes: null, kind: 'milestone' as const, startDate: '2026-03-01', endDate: null, recurrenceRule: null, lane: 0, color: null };
+const activity2 = { id: 'a2', ringId: 'r1', title: 'Høst', notes: null, kind: 'milestone' as const, startDate: '2026-09-01', endDate: null, recurrenceRule: null, lane: 0, color: null };
+
 beforeEach(() => {
   useWheelStore.setState({ wheel: null });
   vi.clearAllMocks();
@@ -136,5 +139,92 @@ describe('wheelStore', () => {
     expect(wheel?.rings.map((r) => r.id)).toEqual(['r3']);
     // Activities on r1 and r2 should be removed; only a3 remains.
     expect(wheel?.activities.map((a) => a.id)).toEqual(['a3']);
+  });
+
+  it('updateActivity applies concurrent drag-commit updates without losing sibling changes', async () => {
+    // Mirrors the updateRing race test above: all three drag interactions
+    // (segment move, resize, milestone move) commit through updateActivity,
+    // so dragging two different activities before the first one's PUT
+    // resolves must not silently drop one of the two updates.
+    useWheelStore.setState({
+      wheel: { id: 'w1', title: 'T', year: 2026, rings: [], activities: [activity1, activity2] },
+    });
+
+    (api.updateActivity as any).mockImplementation((activityId: string, patch: Partial<typeof activity1>) => {
+      const base = activityId === 'a1' ? activity1 : activity2;
+      const updated = { ...base, ...patch };
+      // a2's request resolves first, a1's resolves later — the order a real
+      // pair of concurrent drags would not guarantee.
+      const delay = activityId === 'a1' ? 10 : 0;
+      return new Promise((resolve) => setTimeout(() => resolve(updated), delay));
+    });
+
+    await Promise.all([
+      useWheelStore.getState().updateActivity('a1', { startDate: '2026-04-01' }),
+      useWheelStore.getState().updateActivity('a2', { startDate: '2026-10-01' }),
+    ]);
+
+    const activities = useWheelStore.getState().wheel?.activities;
+    expect(activities?.find((a) => a.id === 'a1')?.startDate).toBe('2026-04-01');
+    expect(activities?.find((a) => a.id === 'a2')?.startDate).toBe('2026-10-01');
+  });
+
+  it('addActivity applies concurrent creations without losing sibling additions', async () => {
+    useWheelStore.setState({
+      wheel: { id: 'w1', title: 'T', year: 2026, rings: [], activities: [] },
+    });
+
+    (api.createActivity as any).mockImplementation((_wheelId: string, input: Partial<typeof activity1>) => {
+      const created = input.title === activity1.title ? activity1 : activity2;
+      const delay = created.id === 'a1' ? 10 : 0;
+      return new Promise((resolve) => setTimeout(() => resolve(created), delay));
+    });
+
+    await Promise.all([
+      useWheelStore.getState().addActivity(activity1),
+      useWheelStore.getState().addActivity(activity2),
+    ]);
+
+    const ids = useWheelStore.getState().wheel?.activities.map((a) => a.id).sort();
+    expect(ids).toEqual(['a1', 'a2']);
+  });
+
+  it('removeActivity applies concurrent deletions without losing sibling removals', async () => {
+    const activity3 = { ...activity1, id: 'a3' };
+    useWheelStore.setState({
+      wheel: { id: 'w1', title: 'T', year: 2026, rings: [], activities: [activity1, activity2, activity3] },
+    });
+
+    (api.deleteActivity as any).mockImplementation((activityId: string) => {
+      const delay = activityId === 'a1' ? 10 : 0;
+      return new Promise((resolve) => setTimeout(() => resolve(undefined), delay));
+    });
+
+    await Promise.all([
+      useWheelStore.getState().removeActivity('a1'),
+      useWheelStore.getState().removeActivity('a2'),
+    ]);
+
+    expect(useWheelStore.getState().wheel?.activities.map((a) => a.id)).toEqual(['a3']);
+  });
+
+  it('addRing applies concurrent creations without losing sibling additions', async () => {
+    const ring1 = { id: 'r1', wheelId: 'w1', name: 'A', orderIndex: 0, color: '#111111' };
+    const ring2 = { id: 'r2', wheelId: 'w1', name: 'B', orderIndex: 1, color: '#222222' };
+    useWheelStore.setState({ wheel: { id: 'w1', title: 'T', year: 2026, rings: [], activities: [] } });
+
+    (api.createRing as any).mockImplementation((_wheelId: string, input: Partial<typeof ring1>) => {
+      const created = input.name === ring1.name ? ring1 : ring2;
+      const delay = created.id === 'r1' ? 10 : 0;
+      return new Promise((resolve) => setTimeout(() => resolve(created), delay));
+    });
+
+    await Promise.all([
+      useWheelStore.getState().addRing(ring1),
+      useWheelStore.getState().addRing(ring2),
+    ]);
+
+    const ids = useWheelStore.getState().wheel?.rings.map((r) => r.id).sort();
+    expect(ids).toEqual(['r1', 'r2']);
   });
 });

@@ -32,7 +32,13 @@ export const useWheelStore = create<WheelStore>((set, get) => ({
     if (!wheel) return;
     try {
       const ring = await api.createRing(wheel.id, input);
-      set({ wheel: { ...wheel, rings: [...wheel.rings, ring] } });
+      // Functional set() form: read state at commit time (not the pre-await
+      // `wheel` capture) so a concurrent add/update/remove doesn't race and
+      // clobber this ring with a stale base array. See updateRing/removeRing.
+      set((state) => {
+        if (!state.wheel) return state;
+        return { wheel: { ...state.wheel, rings: [...state.wheel.rings, ring] } };
+      });
     } catch (err) {
       toast.error('Kunne ikke opprette ringen');
       throw err;
@@ -94,7 +100,14 @@ export const useWheelStore = create<WheelStore>((set, get) => ({
     if (!wheel) return;
     try {
       const activity = await api.createActivity(wheel.id, input);
-      set({ wheel: { ...wheel, activities: [...wheel.activities, activity] } });
+      // Functional set() form: read state at commit time (not the pre-await
+      // `wheel` capture) so concurrent activity mutations — e.g. two drags
+      // committing before either PUT resolves — don't race and clobber each
+      // other's already-applied changes with a stale base array.
+      set((state) => {
+        if (!state.wheel) return state;
+        return { wheel: { ...state.wheel, activities: [...state.wheel.activities, activity] } };
+      });
     } catch (err) {
       toast.error('Kunne ikke lagre aktiviteten');
       throw err;
@@ -106,7 +119,20 @@ export const useWheelStore = create<WheelStore>((set, get) => ({
     if (!wheel) return;
     try {
       const updated = await api.updateActivity(activityId, patch);
-      set({ wheel: { ...wheel, activities: wheel.activities.map((a) => (a.id === activityId ? updated : a)) } });
+      // Functional set() form — see addActivity above. This matters
+      // especially here: all three drag interactions (segment move, resize,
+      // milestone move) commit through updateActivity, so dragging two
+      // different activities before the first one's PUT resolves must not
+      // silently drop one of the two updates.
+      set((state) => {
+        if (!state.wheel) return state;
+        return {
+          wheel: {
+            ...state.wheel,
+            activities: state.wheel.activities.map((a) => (a.id === activityId ? updated : a)),
+          },
+        };
+      });
     } catch (err) {
       toast.error('Kunne ikke oppdatere aktiviteten');
       throw err;
@@ -118,7 +144,11 @@ export const useWheelStore = create<WheelStore>((set, get) => ({
     if (!wheel) return;
     try {
       await api.deleteActivity(activityId);
-      set({ wheel: { ...wheel, activities: wheel.activities.filter((a) => a.id !== activityId) } });
+      // Functional set() form — see addActivity above.
+      set((state) => {
+        if (!state.wheel) return state;
+        return { wheel: { ...state.wheel, activities: state.wheel.activities.filter((a) => a.id !== activityId) } };
+      });
     } catch (err) {
       toast.error('Kunne ikke slette aktiviteten');
       throw err;
