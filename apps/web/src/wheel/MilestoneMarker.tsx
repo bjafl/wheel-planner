@@ -32,6 +32,10 @@ export function MilestoneMarker({
   const [previewDayDelta, setPreviewDayDelta] = useState<number | null>(null);
 
   const bind = useDrag(({ first, last, xy: [x, y], event, memo }) => {
+    // Stop this pointer event from bubbling to the canvas's own pan/zoom gesture (WheelCanvas),
+    // which would otherwise also fire on every tick of this drag. Must be called unconditionally
+    // (not just on `first`) since the underlying native listener needs to see it stopped each tick.
+    event.stopPropagation();
     const { x: localX, y: localY } = screenToLocalPoint(event.target as SVGGraphicsElement, x, y);
     const currentAngle = pointerAngle(localX, localY);
 
