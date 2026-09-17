@@ -76,6 +76,7 @@ export function ActivitySegment({
         ref={pathRef}
         {...(bind() as any)}
         data-activity-id={activity.id}
+        data-wheel-draggable="true"
         d={path ?? undefined}
         fill={activity.color ?? color}
         opacity={previewDayDelta !== null || isResizing ? 0.6 : 1}

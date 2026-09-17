@@ -6,14 +6,17 @@ export function WheelCanvas({ children }: { children: ReactNode }) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
 
   const bind = useGesture({
-    onDrag: ({ offset: [x, y], pinching }) => {
+    onDrag: ({ event, offset: [x, y], pinching }) => {
+      if ((event.target as Element)?.closest?.('[data-wheel-draggable]')) return;
       if (pinching) return;
       setTransform((t) => ({ ...t, x, y }));
     },
-    onPinch: ({ offset: [scale] }) => {
+    onPinch: ({ event, offset: [scale] }) => {
+      if ((event.target as Element)?.closest?.('[data-wheel-draggable]')) return;
       setTransform((t) => ({ ...t, scale: Math.min(Math.max(scale, 0.5), 3) }));
     },
-    onWheel: ({ delta: [, dy] }) => {
+    onWheel: ({ event, delta: [, dy] }) => {
+      if ((event.target as Element)?.closest?.('[data-wheel-draggable]')) return;
       setTransform((t) => ({ ...t, scale: Math.min(Math.max(t.scale - dy * 0.001, 0.5), 3) }));
     },
   });
