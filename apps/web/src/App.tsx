@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { WheelCanvas } from './wheel/WheelCanvas';
 import { MonthRing } from './wheel/MonthRing';
 import { TodayMarker } from './wheel/TodayMarker';
@@ -44,10 +45,30 @@ export default function App() {
   const [formRingId, setFormRingId] = useState<string | undefined>(undefined);
   const [ringSheetOpen, setRingSheetOpen] = useState(false);
   const [tooltip, setTooltip] = useState<{ el: Element; label: string } | null>(null);
+  const [bootstrapError, setBootstrapError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
-    ensureDevWheelId().then((id) => loadWheel(id));
-  }, [loadWheel]);
+    setBootstrapError(false);
+    ensureDevWheelId()
+      .then((id) => loadWheel(id))
+      .catch((err) => {
+        toast.error('Kunne ikke starte årshjulet');
+        console.error(err);
+        setBootstrapError(true);
+      });
+  }, [loadWheel, retryKey]);
+
+  if (bootstrapError) {
+    return (
+      <div className="p-8 text-center text-muted-foreground space-y-4">
+        <p>Kunne ikke starte årshjulet. Sjekk at API-serveren kjører.</p>
+        <Button variant="outline" onClick={() => setRetryKey((k) => k + 1)}>
+          Prøv igjen
+        </Button>
+      </div>
+    );
+  }
 
   if (!wheel) {
     return <div className="p-8 text-center text-muted-foreground">Laster årshjul…</div>;
