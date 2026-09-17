@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { arc } from 'd3-shape';
+import { addDays } from 'date-fns';
 import { dateToAngle } from '../geometry/dateAngle';
+import { useSegmentDrag } from './useSegmentDrag';
 import type { Activity } from '../types';
 
 const arcGenerator = arc();
@@ -17,9 +20,24 @@ export function ActivitySegment({
   year: number;
   color: string;
 }) {
-  const startAngle = dateToAngle(new Date(activity.startDate), year);
-  const endAngle = dateToAngle(new Date(activity.endDate!), year);
+  const [previewDayDelta, setPreviewDayDelta] = useState<number | null>(null);
+  const { bind } = useSegmentDrag({ activity, year, onPreviewChange: setPreviewDayDelta });
+
+  const effectiveStart = previewDayDelta ? addDays(new Date(activity.startDate), previewDayDelta) : new Date(activity.startDate);
+  const effectiveEnd = previewDayDelta ? addDays(new Date(activity.endDate!), previewDayDelta) : new Date(activity.endDate!);
+
+  const startAngle = dateToAngle(effectiveStart, year);
+  const endAngle = dateToAngle(effectiveEnd, year);
   const path = arcGenerator({ innerRadius, outerRadius, startAngle, endAngle } as any);
 
-  return <path data-activity-id={activity.id} d={path ?? undefined} fill={activity.color ?? color} />;
+  return (
+    <path
+      {...(bind() as any)}
+      data-activity-id={activity.id}
+      d={path ?? undefined}
+      fill={activity.color ?? color}
+      opacity={previewDayDelta !== null ? 0.6 : 1}
+      style={{ touchAction: 'none', cursor: 'grab' }}
+    />
+  );
 }
