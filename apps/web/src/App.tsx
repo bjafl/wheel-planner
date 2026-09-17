@@ -50,7 +50,16 @@ export default function App() {
   }, [loadWheel]);
 
   if (!wheel) {
-    return <div className="p-8">Laster årshjul…</div>;
+    return <div className="p-8 text-center text-muted-foreground">Laster årshjul…</div>;
+  }
+
+  if (wheel.rings.length === 0) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        Legg til din første ring for å komme i gang.
+        <RingManager rings={[]} />
+      </div>
+    );
   }
 
   const firstRing = wheel.rings[0];
