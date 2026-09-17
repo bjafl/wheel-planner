@@ -1,6 +1,6 @@
 import { useDrag } from '@use-gesture/react';
 import { addDays } from 'date-fns';
-import { dateToAngle } from '../geometry/dateAngle';
+import { dateToAngle, toIsoDate } from '../geometry/dateAngle';
 import { angleDeltaToDayDelta } from './useSegmentDrag';
 import { useWheelStore } from '../store/wheelStore';
 import { screenToLocalPoint } from './pointerMath';
@@ -47,7 +47,7 @@ export function ResizeHandle({
       const currentEnd = new Date(activity.endDate!);
       const candidate = addDays(anchorDate, dayDelta);
       const clamped = clampEdgeDate(edge, candidate, currentStart, currentEnd);
-      const iso = clamped.toISOString().slice(0, 10);
+      const iso = toIsoDate(clamped);
       updateActivity(activity.id, edge === 'start' ? { startDate: iso } : { endDate: iso });
     } else {
       onPreviewChange(edge, dayDelta);

@@ -4,6 +4,7 @@ import { addDays } from 'date-fns';
 import type { Activity } from '../types';
 import { useWheelStore } from '../store/wheelStore';
 import { screenToLocalPoint } from './pointerMath';
+import { toIsoDate } from '../geometry/dateAngle';
 
 function yearLength(year: number): number {
   return isLeapYear(new Date(year, 0, 1)) ? 366 : 365;
@@ -42,8 +43,8 @@ export function useSegmentDrag({
         const newStart = addDays(new Date(activity.startDate), dayDelta);
         const newEnd = activity.endDate ? addDays(new Date(activity.endDate), dayDelta) : null;
         updateActivity(activity.id, {
-          startDate: newStart.toISOString().slice(0, 10),
-          endDate: newEnd ? newEnd.toISOString().slice(0, 10) : null,
+          startDate: toIsoDate(newStart),
+          endDate: newEnd ? toIsoDate(newEnd) : null,
         });
       }
     } else {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDrag } from '@use-gesture/react';
 import { addDays, format } from 'date-fns';
-import { dateToAngle } from '../geometry/dateAngle';
+import { dateToAngle, toIsoDate } from '../geometry/dateAngle';
 import { angleDeltaToDayDelta } from './useSegmentDrag';
 import { useWheelStore } from '../store/wheelStore';
 import { screenToLocalPoint } from './pointerMath';
@@ -42,7 +42,7 @@ export function MilestoneMarker({
       setPreviewDayDelta(null);
       if (dayDelta !== 0) {
         const newDate = addDays(new Date(activity.startDate), dayDelta);
-        updateActivity(activity.id, { startDate: newDate.toISOString().slice(0, 10) });
+        updateActivity(activity.id, { startDate: toIsoDate(newDate) });
       }
     } else {
       setPreviewDayDelta(dayDelta);

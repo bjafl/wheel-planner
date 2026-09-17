@@ -2,6 +2,7 @@ import type { Activity, Ring } from '../types';
 import { ActivitySegment } from './ActivitySegment';
 import { MilestoneMarker } from './MilestoneMarker';
 import { expandRecurrence } from '../geometry/recurrence';
+import { toIsoDate } from '../geometry/dateAngle';
 import { CATEGORY_RING_START_RADIUS, CATEGORY_RING_WIDTH, LANE_WIDTH } from './constants';
 
 function occurrencesFor(activity: Activity, year: number): Activity[] {
@@ -14,7 +15,7 @@ function occurrencesFor(activity: Activity, year: number): Activity[] {
   };
   return expandRecurrence(anchor, rule, year).map((date) => ({
     ...activity,
-    startDate: date.toISOString().slice(0, 10),
+    startDate: toIsoDate(date),
   }));
 }
 
