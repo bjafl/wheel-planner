@@ -67,4 +67,24 @@ describe('wheel/ring/activity API', () => {
     const getWheel = await request(app).get(`/wheels/${wheel.id}`);
     expect(getWheel.body.activities).toHaveLength(0);
   });
+
+  it('moves an activity to a different ring via PUT', async () => {
+    const { body: wheel } = await request(app).post('/wheels').send({ title: 'W', year: 2026 });
+    const { body: ringA } = await request(app)
+      .post(`/wheels/${wheel.id}/rings`)
+      .send({ name: 'A', color: '#000', orderIndex: 0 });
+    const { body: ringB } = await request(app)
+      .post(`/wheels/${wheel.id}/rings`)
+      .send({ name: 'B', color: '#fff', orderIndex: 1 });
+    const { body: activity } = await request(app)
+      .post(`/wheels/${wheel.id}/activities`)
+      .send({ ringId: ringA.id, title: 'A', notes: null, kind: 'milestone', startDate: '2026-06-01', endDate: null, recurrenceRule: null, lane: 0, color: null });
+
+    const update = await request(app).put(`/activities/${activity.id}`).send({ ringId: ringB.id });
+    expect(update.status).toBe(200);
+    expect(update.body.ringId).toBe(ringB.id);
+
+    const getWheel = await request(app).get(`/wheels/${wheel.id}`);
+    expect(getWheel.body.activities[0].ringId).toBe(ringB.id);
+  });
 });

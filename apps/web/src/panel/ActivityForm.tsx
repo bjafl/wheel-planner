@@ -8,16 +8,19 @@ import { useWheelStore } from '../store/wheelStore';
 import type { Activity, ActivityKind, RecurrenceType, Ring } from '../types';
 
 export function ActivityForm({
-  ring,
+  rings,
+  defaultRingId,
   activity,
   onDone,
 }: {
-  ring: Ring;
+  rings: Ring[];
+  defaultRingId: string;
   activity?: Activity;
   onDone: () => void;
 }) {
   const { addActivity, updateActivity } = useWheelStore();
 
+  const [ringId, setRingId] = useState(activity?.ringId ?? defaultRingId);
   const [title, setTitle] = useState(activity?.title ?? '');
   const [kind, setKind] = useState<ActivityKind>(activity?.kind ?? 'range');
   const [startDate, setStartDate] = useState(activity?.startDate ?? '');
@@ -41,7 +44,7 @@ export function ActivityForm({
       return;
     }
     const payload = {
-      ringId: ring.id,
+      ringId,
       title,
       notes: null,
       kind,
@@ -64,6 +67,25 @@ export function ActivityForm({
       <div>
         <Label htmlFor="title">Tittel</Label>
         <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+      </div>
+      <div>
+        <Label htmlFor="ring">Ring</Label>
+        {/* Native <select>, not shadcn's Select: Radix's combobox doesn't support
+            Testing Library's userEvent.selectOptions(), the same trade-off already
+            made for the recurrence field below. */}
+        <select
+          id="ring"
+          aria-label="Ring"
+          value={ringId}
+          onChange={(e) => setRingId(e.target.value)}
+          className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {rings.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name}
+            </option>
+          ))}
+        </select>
       </div>
       <div>
         <Label htmlFor="kind">Type</Label>

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useWheelStore } from './store/wheelStore';
 import { api } from './api/client';
+import { ringInnerRadii } from './wheel/ringLayout';
 import type { Activity } from './types';
 
 // Dev bootstrap: until Task 13 adds a real "pick/create a wheel" UI, the app
@@ -97,19 +98,22 @@ export default function App() {
     setSheetOpen(true);
   }
 
-  const formRing = wheel.rings.find((r) => r.id === formRingId);
+  const activitiesByRing = new Map(
+    wheel.rings.map((ring) => [ring.id, wheel.activities.filter((a) => a.ringId === ring.id)])
+  );
+  const radii = ringInnerRadii(wheel.rings, activitiesByRing);
 
   return (
     <div className="p-8 flex flex-col items-center gap-6">
       <WheelCanvas>
         <MonthRing year={year} />
         <TodayMarker year={year} />
-        {wheel.rings.map((ring, ringIndex) => (
+        {wheel.rings.map((ring) => (
           <CategoryRing
             key={ring.id}
             ring={ring}
-            ringIndex={ringIndex}
-            activities={wheel.activities.filter((a) => a.ringId === ring.id)}
+            innerRadius={radii.get(ring.id)!}
+            activities={activitiesByRing.get(ring.id) ?? []}
             year={year}
             setTooltip={setTooltip}
           />
@@ -154,9 +158,10 @@ export default function App() {
             <SheetTitle>{editingActivity ? 'Rediger aktivitet' : 'Ny aktivitet'}</SheetTitle>
           </SheetHeader>
           <div className="px-4 pb-4">
-            {formRing && (
+            {formRingId && (
               <ActivityForm
-                ring={formRing}
+                rings={wheel.rings}
+                defaultRingId={formRingId}
                 activity={editingActivity}
                 onDone={() => setSheetOpen(false)}
               />

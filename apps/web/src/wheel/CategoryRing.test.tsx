@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { CategoryRing } from './CategoryRing';
+import { CATEGORY_RING_START_RADIUS } from './constants';
 import type { Activity, Ring } from '../types';
 
 const ring: Ring = { id: 'r1', wheelId: 'w1', name: 'Kampanjer', orderIndex: 0, color: '#3b82f6' };
@@ -13,7 +14,7 @@ describe('CategoryRing', () => {
   it('renders one arc per range activity and one marker per milestone', () => {
     const { container } = render(
       <svg>
-        <CategoryRing ring={ring} ringIndex={0} activities={activities} year={2026} setTooltip={() => {}} />
+        <CategoryRing ring={ring} innerRadius={CATEGORY_RING_START_RADIUS} activities={activities} year={2026} setTooltip={() => {}} />
       </svg>
     );
     expect(container.querySelectorAll('path[data-activity-id="a1"]')).toHaveLength(1);
@@ -29,9 +30,19 @@ describe('CategoryRing', () => {
     };
     const { container } = render(
       <svg>
-        <CategoryRing ring={ring} ringIndex={0} activities={[recurringActivity]} year={2026} setTooltip={() => {}} />
+        <CategoryRing ring={ring} innerRadius={CATEGORY_RING_START_RADIUS} activities={[recurringActivity]} year={2026} setTooltip={() => {}} />
       </svg>
     );
     expect(container.querySelectorAll('[data-milestone-id="a3"]')).toHaveLength(12);
+  });
+
+  it('renders a text label with the ring name', () => {
+    const { container } = render(
+      <svg>
+        <CategoryRing ring={ring} innerRadius={CATEGORY_RING_START_RADIUS} activities={activities} year={2026} setTooltip={() => {}} />
+      </svg>
+    );
+    const label = container.querySelector('[data-ring-label="r1"]');
+    expect(label?.textContent).toBe('Kampanjer');
   });
 });

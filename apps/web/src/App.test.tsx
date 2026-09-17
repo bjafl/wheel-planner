@@ -91,8 +91,10 @@ describe('App end-to-end wiring (smoke)', () => {
 
     // The RingManager, rendered against the real store, shows the ring the
     // API returned — confirming addRing actually reached the store/api layer.
+    // (getAllByText, not getByText: the wheel itself now also renders a ring
+    // name label per CategoryRing, so "Ferier" legitimately appears twice.)
     await waitFor(() => {
-      expect(screen.getByText('Ferier')).not.toBeNull();
+      expect(screen.getAllByText('Ferier').length).toBeGreaterThan(0);
     });
   });
 });

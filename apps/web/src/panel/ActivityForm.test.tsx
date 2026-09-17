@@ -8,6 +8,7 @@ import type { Ring } from '../types';
 vi.mock('../store/wheelStore');
 
 const ring: Ring = { id: 'r1', wheelId: 'w1', name: 'Kampanjer', orderIndex: 0, color: '#3b82f6' };
+const ringB: Ring = { id: 'r2', wheelId: 'w1', name: 'Lansering', orderIndex: 1, color: '#f00' };
 
 describe('ActivityForm', () => {
   it('calls addActivity with form values on submit', async () => {
@@ -15,7 +16,7 @@ describe('ActivityForm', () => {
     (useWheelStore as any).mockReturnValue({ addActivity });
     const onDone = vi.fn();
 
-    render(<ActivityForm ring={ring} onDone={onDone} />);
+    render(<ActivityForm rings={[ring]} defaultRingId={ring.id} onDone={onDone} />);
 
     await userEvent.type(screen.getByLabelText(/tittel/i), 'Sommerkampanje');
     await userEvent.type(screen.getByLabelText(/startdato/i), '2026-06-01');
@@ -32,7 +33,7 @@ describe('ActivityForm', () => {
     const addActivity = vi.fn().mockResolvedValue(undefined);
     (useWheelStore as any).mockReturnValue({ addActivity });
 
-    render(<ActivityForm ring={ring} onDone={vi.fn()} />);
+    render(<ActivityForm rings={[ring]} defaultRingId={ring.id} onDone={vi.fn()} />);
     await userEvent.type(screen.getByLabelText(/tittel/i), 'Månedsmøte');
     await userEvent.type(screen.getByLabelText(/startdato/i), '2026-06-01');
     await userEvent.type(screen.getByLabelText(/sluttdato/i), '2026-08-01');
@@ -49,7 +50,7 @@ describe('ActivityForm', () => {
     (useWheelStore as any).mockReturnValue({ addActivity });
     const onDone = vi.fn();
 
-    render(<ActivityForm ring={ring} onDone={onDone} />);
+    render(<ActivityForm rings={[ring]} defaultRingId={ring.id} onDone={onDone} />);
     await userEvent.type(screen.getByLabelText(/tittel/i), 'Uten startdato');
     await userEvent.type(screen.getByLabelText(/sluttdato/i), '2026-08-01');
     await userEvent.click(screen.getByRole('button', { name: /lagre/i }));
@@ -63,7 +64,7 @@ describe('ActivityForm', () => {
     (useWheelStore as any).mockReturnValue({ addActivity });
     const onDone = vi.fn();
 
-    render(<ActivityForm ring={ring} onDone={onDone} />);
+    render(<ActivityForm rings={[ring]} defaultRingId={ring.id} onDone={onDone} />);
     await userEvent.type(screen.getByLabelText(/tittel/i), 'Uten sluttdato');
     await userEvent.type(screen.getByLabelText(/startdato/i), '2026-06-01');
     await userEvent.click(screen.getByRole('button', { name: /lagre/i }));
@@ -89,7 +90,7 @@ describe('ActivityForm', () => {
       color: null,
     };
 
-    render(<ActivityForm ring={ring} activity={milestone} onDone={onDone} />);
+    render(<ActivityForm rings={[ring]} defaultRingId={ring.id} activity={milestone} onDone={onDone} />);
     await userEvent.type(screen.getByLabelText(/startdato/i), '2026-06-01');
     await userEvent.click(screen.getByRole('button', { name: /lagre/i }));
 
@@ -98,5 +99,19 @@ describe('ActivityForm', () => {
       expect.objectContaining({ kind: 'milestone', startDate: '2026-06-01', endDate: null })
     );
     expect(onDone).toHaveBeenCalled();
+  });
+
+  it('sends the ringId of the ring chosen in the ring selector, not just the default', async () => {
+    const addActivity = vi.fn().mockResolvedValue(undefined);
+    (useWheelStore as any).mockReturnValue({ addActivity });
+
+    render(<ActivityForm rings={[ring, ringB]} defaultRingId={ring.id} onDone={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText(/tittel/i), 'Flyttet aktivitet');
+    await userEvent.type(screen.getByLabelText(/startdato/i), '2026-06-01');
+    await userEvent.type(screen.getByLabelText(/sluttdato/i), '2026-08-01');
+    await userEvent.selectOptions(screen.getByLabelText(/^ring$/i), ringB.id);
+    await userEvent.click(screen.getByRole('button', { name: /lagre/i }));
+
+    expect(addActivity).toHaveBeenCalledWith(expect.objectContaining({ ringId: ringB.id }));
   });
 });

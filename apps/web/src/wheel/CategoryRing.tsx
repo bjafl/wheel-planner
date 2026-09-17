@@ -3,7 +3,8 @@ import { ActivitySegment } from './ActivitySegment';
 import { MilestoneMarker } from './MilestoneMarker';
 import { expandRecurrence } from '../geometry/recurrence';
 import { toIsoDate } from '../geometry/dateAngle';
-import { CATEGORY_RING_START_RADIUS, CATEGORY_RING_WIDTH, LANE_WIDTH } from './constants';
+import { LANE_WIDTH } from './constants';
+import { ringBandHeight } from './ringLayout';
 
 function occurrencesFor(activity: Activity, year: number): Activity[] {
   if (!activity.recurrenceRule) return [activity];
@@ -23,22 +24,35 @@ type SetTooltip = (tooltip: { el: Element; label: string } | null) => void;
 
 export function CategoryRing({
   ring,
-  ringIndex,
+  innerRadius,
   activities,
   year,
   setTooltip,
 }: {
   ring: Ring;
-  ringIndex: number;
+  innerRadius: number;
   activities: Activity[];
   year: number;
   setTooltip: SetTooltip;
 }) {
-  const ringInner = CATEGORY_RING_START_RADIUS + ringIndex * CATEGORY_RING_WIDTH;
+  const ringInner = innerRadius;
+  const bandHeight = ringBandHeight(activities);
+  const labelRadius = ringInner + bandHeight / 2;
   const expanded = activities.flatMap((activity) => occurrencesFor(activity, year));
 
   return (
     <g>
+      <text
+        data-ring-label={ring.id}
+        x={0}
+        y={-labelRadius}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={10}
+        fill="#374151"
+      >
+        {ring.name}
+      </text>
       {expanded.map((occurrence, i) => {
         const laneInner = ringInner + occurrence.lane * LANE_WIDTH;
         const laneOuter = laneInner + LANE_WIDTH;

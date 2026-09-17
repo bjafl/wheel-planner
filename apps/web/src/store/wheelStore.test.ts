@@ -208,6 +208,54 @@ describe('wheelStore', () => {
     expect(useWheelStore.getState().wheel?.activities.map((a) => a.id)).toEqual(['a3']);
   });
 
+  it('addActivity repacks overlapping lanes in the same ring after creating a new activity', async () => {
+    const existing = {
+      id: 'a1', ringId: 'r1', title: 'Eksisterende', notes: null, kind: 'range' as const,
+      startDate: '2026-01-01', endDate: '2026-01-31', recurrenceRule: null, lane: 0, color: null,
+    };
+    useWheelStore.setState({ wheel: { id: 'w1', title: 'T', year: 2026, rings: [], activities: [existing] } });
+
+    const newInput = {
+      ringId: 'r1', title: 'Ny', notes: null, kind: 'range' as const,
+      startDate: '2026-01-15', endDate: '2026-02-15', recurrenceRule: null, lane: 0, color: null,
+    };
+    // The form always submits new activities with lane: 0 (see ActivityForm) —
+    // the backend persists whatever lane it's sent, without repacking itself.
+    const created = { ...newInput, id: 'a2' };
+    (api.createActivity as any).mockResolvedValue(created);
+    (api.updateActivity as any).mockImplementation((id: string, patch: Partial<typeof created>) => {
+      const base = id === 'a2' ? created : existing;
+      return Promise.resolve({ ...base, ...patch });
+    });
+
+    await useWheelStore.getState().addActivity(newInput);
+
+    // a1 (Jan1–31) and a2 (Jan15–Feb15) overlap, so the newly created a2 must
+    // be repacked into a free lane rather than silently overlapping a1.
+    expect(api.updateActivity).toHaveBeenCalledWith('a2', { lane: 1 });
+    const activities = useWheelStore.getState().wheel?.activities;
+    expect(activities?.find((a) => a.id === 'a2')?.lane).toBe(1);
+    expect(activities?.find((a) => a.id === 'a1')?.lane).toBe(0);
+  });
+
+  it('addActivity does not trigger a repack when the new activity does not overlap any sibling', async () => {
+    const existing = {
+      id: 'a1', ringId: 'r1', title: 'Eksisterende', notes: null, kind: 'range' as const,
+      startDate: '2026-01-01', endDate: '2026-01-10', recurrenceRule: null, lane: 0, color: null,
+    };
+    useWheelStore.setState({ wheel: { id: 'w1', title: 'T', year: 2026, rings: [], activities: [existing] } });
+
+    const newInput = {
+      ringId: 'r1', title: 'Ny', notes: null, kind: 'range' as const,
+      startDate: '2026-02-01', endDate: '2026-02-10', recurrenceRule: null, lane: 0, color: null,
+    };
+    (api.createActivity as any).mockResolvedValue({ ...newInput, id: 'a2' });
+
+    await useWheelStore.getState().addActivity(newInput);
+
+    expect(api.updateActivity).not.toHaveBeenCalled();
+  });
+
   it('addRing applies concurrent creations without losing sibling additions', async () => {
     const ring1 = { id: 'r1', wheelId: 'w1', name: 'A', orderIndex: 0, color: '#111111' };
     const ring2 = { id: 'r2', wheelId: 'w1', name: 'B', orderIndex: 1, color: '#222222' };

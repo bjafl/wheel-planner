@@ -22,10 +22,10 @@ export function registerActivityRoutes(app: Express, db: Database.Database) {
     if (!existing) return res.status(404).json({ error: 'not found' });
     const merged = { ...mapActivityRow(existing), ...req.body };
     db.prepare(
-      `UPDATE activities SET title = ?, notes = ?, kind = ?, start_date = ?, end_date = ?, recurrence_rule = ?, lane = ?, color = ?
+      `UPDATE activities SET ring_id = ?, title = ?, notes = ?, kind = ?, start_date = ?, end_date = ?, recurrence_rule = ?, lane = ?, color = ?
        WHERE id = ?`
     ).run(
-      merged.title, merged.notes, merged.kind, merged.startDate, merged.endDate,
+      merged.ringId, merged.title, merged.notes, merged.kind, merged.startDate, merged.endDate,
       merged.recurrenceRule ? JSON.stringify(merged.recurrenceRule) : null, merged.lane, merged.color,
       req.params.id
     );
