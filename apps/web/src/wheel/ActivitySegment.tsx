@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { arc } from 'd3-shape';
-import { addDays } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { dateToAngle } from '../geometry/dateAngle';
 import { useSegmentDrag } from './useSegmentDrag';
 import { ResizeHandle } from './ResizeHandle';
 import type { Activity } from '../types';
+
+type SetTooltip = (tooltip: { el: Element; label: string } | null) => void;
 
 const arcGenerator = arc();
 
@@ -14,13 +16,17 @@ export function ActivitySegment({
   outerRadius,
   year,
   color,
+  setTooltip = () => {},
 }: {
   activity: Activity;
   innerRadius: number;
   outerRadius: number;
   year: number;
   color: string;
+  setTooltip?: SetTooltip;
 }) {
+  const pathRef = useRef<SVGPathElement>(null);
+  const [hovered, setHovered] = useState(false);
   const [previewDayDelta, setPreviewDayDelta] = useState<number | null>(null);
   const [previewEdgeDeltas, setPreviewEdgeDeltas] = useState<{ start: number | null; end: number | null }>({
     start: null,
@@ -48,16 +54,34 @@ export function ActivitySegment({
   const path = arcGenerator({ innerRadius, outerRadius, startAngle, endAngle } as any);
 
   const isResizing = previewEdgeDeltas.start !== null || previewEdgeDeltas.end !== null;
+  const isActive = hovered || previewDayDelta !== null || isResizing;
+  const label = `${format(effectiveStart, 'd. MMM')} – ${format(effectiveEnd, 'd. MMM')}`;
+
+  useEffect(() => {
+    if (isActive && pathRef.current) {
+      setTooltip({ el: pathRef.current, label });
+    } else {
+      setTooltip(null);
+    }
+  }, [isActive, label, setTooltip]);
+
+  useEffect(() => {
+    // Clear the shared tooltip if this segment unmounts (e.g. activity deleted) while active.
+    return () => setTooltip(null);
+  }, [setTooltip]);
 
   return (
     <>
       <path
+        ref={pathRef}
         {...(bind() as any)}
         data-activity-id={activity.id}
         d={path ?? undefined}
         fill={activity.color ?? color}
         opacity={previewDayDelta !== null || isResizing ? 0.6 : 1}
         style={{ touchAction: 'none', cursor: 'grab' }}
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => setHovered(false)}
       />
       {activity.kind === 'range' && activity.endDate && (
         <>

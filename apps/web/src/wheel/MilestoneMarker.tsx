@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDrag } from '@use-gesture/react';
-import { addDays } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { dateToAngle } from '../geometry/dateAngle';
 import { angleDeltaToDayDelta } from './useSegmentDrag';
 import { useWheelStore } from '../store/wheelStore';
 import { CENTER } from './constants';
 import type { Activity } from '../types';
+
+type SetTooltip = (tooltip: { el: Element; label: string } | null) => void;
 
 function pointerAngle(x: number, y: number): number {
   return Math.atan2(x, -y);
@@ -16,13 +18,17 @@ export function MilestoneMarker({
   radius,
   year,
   color,
+  setTooltip = () => {},
 }: {
   activity: Activity;
   radius: number;
   year: number;
   color: string;
+  setTooltip?: SetTooltip;
 }) {
   const updateActivity = useWheelStore((s) => s.updateActivity);
+  const circleRef = useRef<SVGCircleElement>(null);
+  const [hovered, setHovered] = useState(false);
   const [previewDayDelta, setPreviewDayDelta] = useState<number | null>(null);
 
   const bind = useDrag(({ first, last, xy: [x, y], event, memo }) => {
@@ -53,8 +59,25 @@ export function MilestoneMarker({
   const x = radius * Math.cos(angle);
   const y = radius * Math.sin(angle);
 
+  const isActive = hovered || previewDayDelta !== null;
+  const label = format(effectiveDate, 'd. MMM');
+
+  useEffect(() => {
+    if (isActive && circleRef.current) {
+      setTooltip({ el: circleRef.current, label });
+    } else {
+      setTooltip(null);
+    }
+  }, [isActive, label, setTooltip]);
+
+  useEffect(() => {
+    // Clear the shared tooltip if this marker unmounts (e.g. activity deleted) while active.
+    return () => setTooltip(null);
+  }, [setTooltip]);
+
   return (
     <circle
+      ref={circleRef}
       {...(bind() as any)}
       data-milestone-id={activity.id}
       cx={x}
@@ -63,6 +86,8 @@ export function MilestoneMarker({
       fill={activity.color ?? color}
       opacity={previewDayDelta !== null ? 0.6 : 1}
       style={{ touchAction: 'none', cursor: 'grab' }}
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
     />
   );
 }

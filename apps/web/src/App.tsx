@@ -3,6 +3,7 @@ import { WheelCanvas } from './wheel/WheelCanvas';
 import { MonthRing } from './wheel/MonthRing';
 import { TodayMarker } from './wheel/TodayMarker';
 import { CategoryRing } from './wheel/CategoryRing';
+import { ActivityTooltip } from './wheel/ActivityTooltip';
 import { ActivityForm } from './panel/ActivityForm';
 import { ActivityList } from './panel/ActivityList';
 import { RingManager } from './panel/RingManager';
@@ -42,6 +43,7 @@ export default function App() {
   const [editingActivity, setEditingActivity] = useState<Activity | undefined>(undefined);
   const [formRingId, setFormRingId] = useState<string | undefined>(undefined);
   const [ringSheetOpen, setRingSheetOpen] = useState(false);
+  const [tooltip, setTooltip] = useState<{ el: Element; label: string } | null>(null);
 
   useEffect(() => {
     ensureDevWheelId().then((id) => loadWheel(id));
@@ -79,9 +81,15 @@ export default function App() {
             ringIndex={ringIndex}
             activities={wheel.activities.filter((a) => a.ringId === ring.id)}
             year={year}
+            setTooltip={setTooltip}
           />
         ))}
       </WheelCanvas>
+      <ActivityTooltip
+        referenceEl={tooltip?.el ?? null}
+        label={tooltip?.label ?? ''}
+        visible={tooltip !== null}
+      />
 
       <div className="w-full max-w-md space-y-4">
         <div className="flex items-center justify-between">

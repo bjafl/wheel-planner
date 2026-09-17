@@ -18,16 +18,20 @@ function occurrencesFor(activity: Activity, year: number): Activity[] {
   }));
 }
 
+type SetTooltip = (tooltip: { el: Element; label: string } | null) => void;
+
 export function CategoryRing({
   ring,
   ringIndex,
   activities,
   year,
+  setTooltip = () => {},
 }: {
   ring: Ring;
   ringIndex: number;
   activities: Activity[];
   year: number;
+  setTooltip?: SetTooltip;
 }) {
   const ringInner = CATEGORY_RING_START_RADIUS + ringIndex * CATEGORY_RING_WIDTH;
   const expanded = activities.flatMap((activity) => occurrencesFor(activity, year));
@@ -45,6 +49,7 @@ export function CategoryRing({
             outerRadius={laneOuter}
             year={year}
             color={ring.color}
+            setTooltip={setTooltip}
           />
         ) : (
           <MilestoneMarker
@@ -53,6 +58,7 @@ export function CategoryRing({
             radius={(laneInner + laneOuter) / 2}
             year={year}
             color={ring.color}
+            setTooltip={setTooltip}
           />
         );
       })}
