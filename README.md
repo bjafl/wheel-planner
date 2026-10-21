@@ -87,3 +87,7 @@ just test    # web + API tests
 just build   # type-check and build the web app
 just lint    # oxlint
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
